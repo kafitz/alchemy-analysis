@@ -1,43 +1,62 @@
 #!/usr/bin/env python
 import json
+import os
 from pprint import pprint
 
+from config import DATA_DIR
+from constants import CURRENCIES, DIVISORS, TOKENS
 from calculations.net_positions import calculate_net_positions
 from calculations.net_liquidity_deposits import calculate_net_liquidity_deposits
 from calculations.net_balances import calculate_net_balances
 
 
-class CURRENCIES:
-    CADC = 'CADC'
-    EURS = 'EURS'
-    NZDS = 'NZDS'
-    USDC = 'USDC'
+# iterate over cache data files in order and concatenate contents
+def _load_all_data(cur1, cur2, label):
+    mock_json = {'result': { 'transfers': [] }}  # return a mock json response for legibility
+    json_fps = [fn for fn in os.listdir(DATA_DIR) if fn.endswith('.json')]
+    for fp in sorted(json_fps):
+        is_match = all([cur1 in fp, cur2 in fp, label in fp])
+        if is_match:
+            with open(fp, 'r') as cache_f:
+                data = json.load(cache_f)
+            mock_json['result']['transfers'].extend(data['result']['transfers'])
+    return mock_json
 
 
-DIVISORS = {
-    'USDC': 1E6,
-    'CADC': 1E18,
-    'EURS': 1E2,
-    'NZDS': 1E18,
-}
+# fetch asset from transaction since it is not always returned (e.g., NZDS)
+def _get_asset(transfer):
+    asset = transfer['asset']
+    if asset:
+        return asset
+    for name, address in TOKENS.items():
+        if transfer['to'] == address:
+            return name
+        elif transfer['from'] == address:
+            return name
+        elif transfer['rawContract']['address'] == address:
+            return name            
 
 
 # iterate over json file and generate a list of formatted transactions
-def load_cached_data(cache_fp, deposit=False):
-    with open(cache_fp, 'r') as cache_f:
-        data = json.load(cache_f)
-
+def load_cached_data(cur1, cur2, deposit=False, withdrawal=False):
+    if not (deposit or withdrawal):
+        raise Exception('Cached data not specified.')
+    if deposit:
+        json_data = _load_all_data(cur1, cur2, 'deposits')
+    elif withdrawal:
+        json_data = _load_all_data(cur1, cur2, 'withdrawals')
+    
     transfers = []
-    for transfer in data['result']['transfers']:
-        # print(transfer, int(transfer['rawContract']['value'], 16) / DIVISORS[transfer['asset']])
-        value = int(transfer['rawContract']['value'], 16) / DIVISORS[transfer['asset']]
+    for transfer in json_data['result']['transfers']:
+        asset = _get_asset(transfer)
+        value = int(transfer['rawContract']['value'], 16) / getattr(DIVISORS, asset)
         if deposit:
             transfers.append(
-                (transfer['to'], int(transfer['blockNum'], 16), transfer['hash'], transfer['asset'], value)
+                (transfer['to'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
             )
-        else:
+        elif withdrawal:
             transfers.append(
-                (transfer['from'], int(transfer['blockNum'], 16), transfer['hash'], transfer['asset'], value)
+                (transfer['from'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
             )            
     return transfers
 
@@ -103,8 +122,10 @@ def _tally_zap(txs, target_asset, is_deposit):
     value = 0
     if is_deposit:
         for tx in txs:
+            print(tx)
             if tx['asset'] == target_asset and tx['type'] == 'deposit':
                 value += tx['value']
+        import sys; sys.exit()
     else:
         for tx in txs:
             if tx['asset'] == target_asset and tx['type'] == 'withdrawal':
@@ -142,6 +163,7 @@ def sort_grouped_transactions(hash_transactions, currencies):
             target_asset = _zap_originator_destination_asset(txs, currencies, is_deposit)
 
             # get total tx amount and append labeled transaction
+            print(tx_hash)
             value = _tally_zap(txs, target_asset, is_deposit)
             liquidity_txs.append({
                 'type': 'zap-deposit' if is_deposit else 'zap-withdrawal',
@@ -154,8 +176,8 @@ def sort_grouped_transactions(hash_transactions, currencies):
     
 
 def run(cur1, cur2):
-    deposits = load_cached_data(f'{cur1}-{cur2}-deposits-0.json', deposit=True)
-    withdrawals = load_cached_data(f'{cur1}-{cur2}-withdrawals-0.json')
+    deposits = load_cached_data(cur1, cur2, deposit=True)
+    withdrawals = load_cached_data(cur1, cur2, withdrawal=True)
 
     # group into liquidity transactions and trades
     currencies = [cur1, cur2]    
@@ -169,11 +191,17 @@ def run(cur1, cur2):
 
 
 if __name__ == '__main__':
-    # # CADC / USDC
+    ## CADC / USDC
     # run(CURRENCIES.CADC, CURRENCIES.USDC)
 
-    # EURS / USDC
-    run(CURRENCIES.EURS, CURRENCIES.USDC)    
+    ## EURS / USDC
+    # run(CURRENCIES.EURS, CURRENCIES.USDC)    
 
-    # # NZDS / USDC
+    ## NZDS / USDC
     # run(CURRENCIES.NZDS, CURRENCIES.USDC)
+
+    ## TRYB / USDC
+    run(CURRENCIES.TRYB, CURRENCIES.USDC)
+
+    ## XSGD / USDC
+    # run(CURRENCIES.XSGD, CURRENCIES.USDC)    
