@@ -6,6 +6,7 @@ import time
 
 from config import ALCHEMY_BASE_URL
 from constants import POOL_CONTRACTS, ZAP_CONTRACTS
+from helpers import data_handlers, file_handlers
 
 
 def get_asset_transfers(currency_pair, contract_address, start_block, label, request_id=0):
@@ -46,46 +47,23 @@ def get_asset_transfers(currency_pair, contract_address, start_block, label, req
     return data
 
 
-def _get_or_init_request_idx(currency_pair, tx_type):
-    new_idx = 0
-    for fn in sorted(os.listdir()):
-        if currency_pair in fn:
-            base_fn_parts = fn.rstrip('.json').split('-')
-            if base_fn_parts[2] != tx_type:
-                continue
-            new_idx = int(base_fn_parts[-1]) + 1
-    return new_idx
-
-def _get_next_block_num(transfers):
-    return int(transfers[-1]['blockNum'], 16) + 1
-
-
-def _load_next_block_from_file(currency_pair, tx_type, request_id):
-    cache_fp = f'{currency_pair}-{tx_type}-{request_id}.json'
-    with open(cache_fp, 'r') as cache_f:
-        data = json.load(cache_f)
-    next_block = _get_next_block_num(data['result']['transfers'])
-    return next_block
-
-
 # run fetch request in loop based upon latest block number until no new transactions exist
 def fetch_all_data(currency_pair, contract_info, tx_type):
-    contract_address, start_block = contract_info    
     print(f'Fetching {tx_type} for {currency_pair}...')
+    contract_address, start_block = contract_info    
 
     # initialize request id and start block from 0 or from existing data
-    request_idx = _get_or_init_request_idx(currency_pair, tx_type)
+    request_idx = file_handlers.get_or_init_request_idx(currency_pair, tx_type)
     if request_idx != 0:
-        start_block = _load_next_block_from_file(currency_pair, tx_type, request_idx - 1)
+        start_block = file_handlers.load_next_block(currency_pair, tx_type, request_idx - 1)
 
     first_request = True
-    transfers_data = None
     while True:
         # sleep between consecutive requests and get next start block
         # from last seen block num + 1
         if not first_request:
             time.sleep(1)
-            start_block = _get_next_block_num(transfers_data)
+            start_block = data_handlers.get_next_block_num(transfers_data)
 
         # perform API requests and break when new data is empty
         print('Start block num:', start_block)
