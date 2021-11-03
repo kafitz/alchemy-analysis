@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+BLACKHOLE_ADDRESS = '0x0000000000000000000000000000000000000000'
+
 TOKENS = {
     'CADC': '0xcadc0acd4b445166f12d2c07eac6e2544fbe2eef',
     'EURS': '0x1a4ffe0dcbdb4d551cfca61a5626afd190731347',
@@ -23,9 +25,7 @@ STAKING_CONTRACTS = {
     'TRYB-USDC': ('0xdDB720069fdfE7BE2E2883A1c06BE0f353f7C4c8', 13282257),
     'XSGD-USDC': ('0xd52D48Db08e8224ef6E2be8F54f3c84e790b1c32', 12459420),
 }
-ZAP_CONTRACTS = {
-    'TRYB-USDC': '0x64d65E3d70ba0f8812A9d1d7b8B5C51DAB78CD15',
-}
+ZAP_CONTRACT_INFO = ('0x64d65E3d70ba0f8812A9d1d7b8B5C51DAB78CD15', 12600535)
 
 class CURRENCIES:
     CADC = 'CADC'
@@ -35,10 +35,16 @@ class CURRENCIES:
     USDC = 'USDC'
     XSGD = 'XSGD'
 
-class DIVISORS:
-    CADC = 1E18
-    EURS = 1E2
-    NZDS = 1E6
-    TRYB = 1E6
-    USDC = 1E6
-    XSGD = 1E6
+DIVISORS = {
+    'CADC': 1E18,
+    'EURS': 1E2,
+    'NZDS': 1E6,
+    'TRYB': 1E6,
+    'USDC': 1E6,
+    'XSGD': 1E6,
+    'dfx-cadc-a': 1E18,
+    'dfx-eurs-a': 1E18,
+    'dfx-nzds-a': 1E18,
+    'dfx-tryb-a': 1E18,
+    'dfx-xsgd-a': 1E18,
+}

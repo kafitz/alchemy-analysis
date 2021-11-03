@@ -5,7 +5,7 @@
 # [(address, blockNum, hash, asset, value), ...]
 def total(transfers):
     balance = {}
-    for _, _, _, asset, value in transfers:
+    for _, _, _, _, asset, value in transfers:
         balance.setdefault(asset, 0)
         if value:
             balance[asset] += float(value)

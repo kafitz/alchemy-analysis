@@ -9,3 +9,38 @@ def test_get_next_block_num():
         {'blockNum': '0xce99e5', 'hash': '0x69f4fc6a939452757342adbbc94a0d9b64a0cbe7e2a9d0a1dc62c342235a63e0', 'from': '0x9d0950c595786aba7c26dfddf270d66a8b18b4fa', 'to': '0xe9669516e09f5710023566458f329cce6437aaac', 'value': None, 'erc721TokenId': None, 'erc1155Metadata': None, 'asset': None, 'category': 'token', 'rawContract': {'value': '0x746a528800', 'address': '0xda446fad08277b4d2591536f204e018f32b6831c', 'decimal': None}}
     ]
     assert data_handlers.get_next_block_num(test_data) == 13539814
+
+
+def test__get_asset():
+    test_data = {
+        'blockNum': '0xcab20b', 
+        'hash': '0x1bc2279eab59f8fb7c5b581abcecbe5ce241c05bf584866bbd3e5939b67d58ad',
+        'from': None,
+        'to': None,
+        'value': 900,
+        'erc721TokenId': None,
+        'erc1155Metadata': None,
+        'asset': None,
+        'category': 'token',
+        'rawContract': {
+            'value': '0x35a4e900',
+            'address': None,
+            'decimal': '0x6'
+        }
+    }
+
+    test_data_asset = dict(test_data)
+    test_data_asset['asset'] = 'TRYB'
+    assert data_handlers._get_asset(test_data_asset) == 'TRYB'
+
+    test_data_asset = dict(test_data)
+    test_data_asset['to'] = '0x2C537E5624e4af88A7ae4060C022609376C8D0EB'
+    assert data_handlers._get_asset(test_data_asset) == 'TRYB'
+
+    test_data_asset = dict(test_data)
+    test_data_asset['from'] = '0x2C537E5624e4af88A7ae4060C022609376C8D0EB'
+    assert data_handlers._get_asset(test_data_asset) == 'TRYB'
+
+    test_data_asset = dict(test_data)
+    test_data_asset['rawContract']['address'] = '0x2C537E5624e4af88A7ae4060C022609376C8D0EB'
+    assert data_handlers._get_asset(test_data_asset) == 'TRYB'            
