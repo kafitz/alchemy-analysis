@@ -4,13 +4,13 @@ import requests
 import os
 import time
 
-from config import ALCHEMY_BASE_URL
+from config import ALCHEMY_BASE_URL, DATA_DIR
 from constants import POOL_CONTRACTS, ZAP_CONTRACT_INFO
 from helpers import data_handlers, file_handlers
 
 
 def get_asset_transfers(currency_pair, contract_address, start_block, label, request_id=0):
-    cache_fp = f'{currency_pair}-{label}-{request_id}.json'
+    cache_fp = os.path.join(DATA_DIR, f'{currency_pair}-{label}-{request_id}.json')
     if not os.path.exists(cache_fp):
         params = {
             'jsonrpc': '2.0',
@@ -116,12 +116,12 @@ def fetch_all_zap_data(contract_info, tx_type):
 
 
 if __name__ == '__main__':
-    # for currency_pair, contract_info in POOL_CONTRACTS.items():
-    #     if currency_pair != 'XSGD-USDC':
-    #         continue
+    for currency_pair, contract_info in POOL_CONTRACTS.items():
+        # if currency_pair != 'XSGD-USDC':
+        #     continue
 
-    #     fetch_all_data(currency_pair, contract_info, 'deposits')
-    #     fetch_all_data(currency_pair, contract_info, 'withdrawals')
+        fetch_all_data(currency_pair, contract_info, 'deposits')
+        fetch_all_data(currency_pair, contract_info, 'withdrawals')
 
     # (zap_contract_address, pool_contract_start_blocks)
     fetch_all_zap_data(ZAP_CONTRACT_INFO, 'deposits')

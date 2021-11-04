@@ -10,10 +10,11 @@ def calculate_sum_zap_txs(cur1, cur2, hash_txs, hash_txs_lookup):
     }
     for tx_hash, txs in hash_txs.items():
         if not (cur1 in hash_txs_lookup[tx_hash] and cur2 in hash_txs_lookup[tx_hash]):
-            continue     
+            continue
 
+        num = 0
         for tx in txs:
-            ignore_pools = [info[0].lower() for pair, info in POOL_CONTRACTS.items()]
+            ignore_pools = [info[0].lower() for _, info in POOL_CONTRACTS.items()]
             ignore_contracts = [ZAP_CONTRACT_INFO[0].lower(), BLACKHOLE_ADDRESS]
 
             ignore_tx = False
@@ -23,16 +24,16 @@ def calculate_sum_zap_txs(cur1, cur2, hash_txs, hash_txs_lookup):
                 ignore_tx = True
             if ignore_tx:
                 continue
-
+            num += 1
 
             if tx['asset'] == cur1:
-                if tx['type'] == 'deposit':
+                if tx['type'] in ['deposit', 'zap-deposit']:
                     totals[cur1] += tx['value']
-                elif tx['type'] == 'withdrawal':
+                elif tx['type'] in ['withdrawal', 'zap-withdrawal']:
                     totals[cur1] -= tx['value']
             elif tx['asset'] == cur2:
-                if tx['type'] == 'deposit':
+                if tx['type'] in ['deposit', 'zap-deposit']:
                     totals[cur2] += tx['value']
-                elif tx['type'] == 'withdrawal':
+                elif tx['type'] in ['withdrawal', 'zap-withdrawal']:
                     totals[cur2] -= tx['value'] 
     return totals

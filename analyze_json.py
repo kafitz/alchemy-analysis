@@ -11,13 +11,17 @@ from helpers import data_handlers, file_handlers, timeseries_handlers
 
 
 # group transactions that have the same transaction hash
-def group_single_transactions(deposits, withdrawals):
+def group_single_transactions(deposits, withdrawals, is_zap=False):
     hash_transactions = {}
     for d in deposits:
         d['type'] = 'deposit'
+        if is_zap:
+            d['type'] = 'zap-deposit'
         hash_transactions.setdefault(d['hash'], []).append(d)
     for w in withdrawals:
         w['type'] = 'withdrawal'
+        if is_zap:
+            d['type'] = 'zap-withdraw'        
         hash_transactions.setdefault(w['hash'], []).append(w)
     return hash_transactions
 
@@ -123,11 +127,6 @@ def sort_grouped_transactions(hash_transactions, currencies):
     return liquidity_txs, swap_txs
     
 
-# def group_zap_transactions(zap_hash_transactions):
-#     zap_txs = []
-#     sorted_hash_txs = sorted(zap_hash_transactions.items(), key=lambda d: d[1][0]['blockNum'])    
-#     return zap_txs
-
 def run(cur1, cur2):
     zap_deposits = file_handlers.load_cached_zap_data(deposit=True)
     zap_withdrawals = file_handlers.load_cached_zap_data(withdrawal=True)
@@ -135,7 +134,7 @@ def run(cur1, cur2):
     withdrawals = file_handlers.load_cached_data(cur1, cur2, withdrawal=True)
 
     # create a lookup of hash -> (cur1, cur2) for each zap
-    zap_hash_txs = group_single_transactions(zap_deposits, zap_withdrawals)
+    zap_hash_txs = group_single_transactions(zap_deposits, zap_withdrawals, is_zap=True)
     lookup = create_zap_currency_lookup(zap_hash_txs)
 
     # group into liquidity transactions and trades
@@ -151,23 +150,22 @@ def run(cur1, cur2):
     calculate_net_balances(swap_txs, currencies, net_liquidity_cur1, net_liquidity_cur2, net_zap_txs)
 
     # generate timeseries data for web charts
-    # zap_txs = group_zap_transactions(zap_hash_txs)
-    timeseries_handlers.generate_timeseries(cur1, cur2, liquidity_txs)
+    timeseries_handlers.generate_timeseries(cur1, cur2, liquidity_txs, swap_txs)
 
 
 
 if __name__ == '__main__':
-    ## CADC / USDC
-    run(CURRENCIES.CADC, CURRENCIES.USDC)
+    # ## CADC / USDC
+    # run(CURRENCIES.CADC, CURRENCIES.USDC)
 
-    ## EURS / USDC
-    run(CURRENCIES.EURS, CURRENCIES.USDC)    
+    # ## EURS / USDC
+    # run(CURRENCIES.EURS, CURRENCIES.USDC)    
 
-    ## NZDS / USDC
-    run(CURRENCIES.NZDS, CURRENCIES.USDC)
+    # ## NZDS / USDC
+    # run(CURRENCIES.NZDS, CURRENCIES.USDC)
 
     ## TRYB / USDC
     run(CURRENCIES.TRYB, CURRENCIES.USDC)
 
-    ## XSGD / USDC
-    run(CURRENCIES.XSGD, CURRENCIES.USDC)    
+    # ## XSGD / USDC
+    # run(CURRENCIES.XSGD, CURRENCIES.USDC)    
