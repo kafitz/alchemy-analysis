@@ -88,7 +88,7 @@ def load_cached_data(cur1, cur2, deposit=False, withdrawal=False):
     else:
         raise Exception('Cached data type not specified.')
 
-    return data_handlers.format_transfers(data, deposit, withdrawal)
+    return data_handlers.format_transfers(data)
 
 
 def load_cached_zap_data(deposit=False, withdrawal=False):
@@ -98,4 +98,4 @@ def load_cached_zap_data(deposit=False, withdrawal=False):
         data = _load_all_zap_data('withdrawals')
     else:
         raise Exception('Cached data type not specified.')
-    return data_handlers.format_zap_transfers(data, deposit, withdrawal)
+    return data_handlers.format_transfers(data)

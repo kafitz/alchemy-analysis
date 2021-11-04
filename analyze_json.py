@@ -6,31 +6,19 @@ from calculations.net_positions import calculate_net_positions
 from calculations.net_liquidity_deposits import calculate_net_liquidity_deposits
 from calculations.net_balances import calculate_net_balances
 from calculations.sum_zaps import calculate_sum_zap_txs
-from helpers import data_handlers, file_handlers
+from helpers import data_handlers, file_handlers, timeseries_handlers
 
 
 
 # group transactions that have the same transaction hash
 def group_single_transactions(deposits, withdrawals):
     hash_transactions = {}
-    for from_address, to_address, block_num, tx_hash, asset, value in deposits:
-        hash_transactions.setdefault(tx_hash, []).append({
-            'blockNum': block_num,
-            'fromAddress': from_address,
-            'toAddress': to_address,
-            'asset': asset,
-            'value': value,
-            'type': 'deposit'
-        })
-    for to_address, from_address, block_num, tx_hash, asset, value in withdrawals:
-        hash_transactions.setdefault(tx_hash, []).append({
-            'blockNum': block_num,
-            'fromAddress': from_address,
-            'toAddress': to_address,
-            'asset': asset,
-            'value': value,
-            'type': 'withdrawal'
-        })
+    for d in deposits:
+        d['type'] = 'deposit'
+        hash_transactions.setdefault(d['hash'], []).append(d)
+    for w in withdrawals:
+        w['type'] = 'withdrawal'
+        hash_transactions.setdefault(w['hash'], []).append(w)
     return hash_transactions
 
 
@@ -102,6 +90,7 @@ def sort_grouped_transactions(hash_transactions, currencies):
     for tx_hash, txs in sorted_hash_txs:
         if len(txs) == 2:
             new_tx = {
+                'blockNum': txs[0]['blockNum'],
                 'cur1': txs[0]['asset'],
                 'val1': txs[0]['value'],
                 'cur2': txs[1]['asset'],
@@ -124,6 +113,7 @@ def sort_grouped_transactions(hash_transactions, currencies):
             # get total tx amount and append labeled transaction
             value = _tally_zap(txs, target_asset, zap_is_deposit)
             liquidity_txs.append({
+                'blockNum': txs[0]['blockNum'],
                 'type': 'zap-deposit' if zap_is_deposit else 'zap-withdrawal',
                 'cur1': target_asset,
                 'val1': value,
@@ -133,17 +123,20 @@ def sort_grouped_transactions(hash_transactions, currencies):
     return liquidity_txs, swap_txs
     
 
+# def group_zap_transactions(zap_hash_transactions):
+#     zap_txs = []
+#     sorted_hash_txs = sorted(zap_hash_transactions.items(), key=lambda d: d[1][0]['blockNum'])    
+#     return zap_txs
+
 def run(cur1, cur2):
     zap_deposits = file_handlers.load_cached_zap_data(deposit=True)
     zap_withdrawals = file_handlers.load_cached_zap_data(withdrawal=True)
-    zap_hash_txs = group_single_transactions(zap_deposits, zap_withdrawals)
-    lookup = create_zap_currency_lookup(zap_hash_txs)
-    net_zap_txs = calculate_sum_zap_txs(cur1, cur2, zap_hash_txs, lookup)
-    # print(net_zap_txs)
-    # import sys; sys.exit()
-
     deposits = file_handlers.load_cached_data(cur1, cur2, deposit=True)
     withdrawals = file_handlers.load_cached_data(cur1, cur2, withdrawal=True)
+
+    # create a lookup of hash -> (cur1, cur2) for each zap
+    zap_hash_txs = group_single_transactions(zap_deposits, zap_withdrawals)
+    lookup = create_zap_currency_lookup(zap_hash_txs)
 
     # group into liquidity transactions and trades
     currencies = [cur1, cur2]
@@ -151,24 +144,30 @@ def run(cur1, cur2):
     filtered_hash_txs = data_handlers.filter_zap_txs(hash_txs, zap_hash_txs.keys())
     liquidity_txs, swap_txs = sort_grouped_transactions(filtered_hash_txs, currencies)
     
-    # calculate sums
+    # # calculate sums
     calculate_net_positions(deposits, withdrawals, currencies)
     net_liquidity_cur1, net_liquidity_cur2 = calculate_net_liquidity_deposits(liquidity_txs, currencies)
+    net_zap_txs = calculate_sum_zap_txs(cur1, cur2, zap_hash_txs, lookup)
     calculate_net_balances(swap_txs, currencies, net_liquidity_cur1, net_liquidity_cur2, net_zap_txs)
+
+    # generate timeseries data for web charts
+    # zap_txs = group_zap_transactions(zap_hash_txs)
+    timeseries_handlers.generate_timeseries(cur1, cur2, liquidity_txs)
+
 
 
 if __name__ == '__main__':
     ## CADC / USDC
-    # run(CURRENCIES.CADC, CURRENCIES.USDC)
+    run(CURRENCIES.CADC, CURRENCIES.USDC)
 
     ## EURS / USDC
-    # run(CURRENCIES.EURS, CURRENCIES.USDC)    
+    run(CURRENCIES.EURS, CURRENCIES.USDC)    
 
     ## NZDS / USDC
-    # run(CURRENCIES.NZDS, CURRENCIES.USDC)
+    run(CURRENCIES.NZDS, CURRENCIES.USDC)
 
     ## TRYB / USDC
-    # run(CURRENCIES.TRYB, CURRENCIES.USDC)
+    run(CURRENCIES.TRYB, CURRENCIES.USDC)
 
     ## XSGD / USDC
     run(CURRENCIES.XSGD, CURRENCIES.USDC)    

@@ -15,7 +15,7 @@ def calculate_net_liquidity_deposits(liquidity_txs, currencies):
                 liquidity_deposits.setdefault(cur2, 0)
                 liquidity_deposits[cur2] += tx['val2']
         
-        if tx['type'] in ['withdrawal', 'zap-withdrawal']:
+        elif tx['type'] in ['withdrawal', 'zap-withdrawal']:
             cur1 = tx['cur1']
             liquidity_withdrawals.setdefault(cur1, 0)
             liquidity_withdrawals[cur1] += tx['val1']
@@ -24,6 +24,9 @@ def calculate_net_liquidity_deposits(liquidity_txs, currencies):
                 cur2 = tx['cur2']
                 liquidity_withdrawals.setdefault(cur2, 0)
                 liquidity_withdrawals[cur2] += tx['val2']
+
+        else:
+            raise Exception(f"Unexpected tx type: {tx['type']}")
 
     currency1, currency2 = currencies
     net_liquidity_currency1 = liquidity_deposits[currency1] - liquidity_withdrawals[currency1]

@@ -21,39 +21,19 @@ def _get_asset(transfer):
             return name            
 
 
-def format_transfers(json_data, deposit=False, withdrawal=False):
+def format_transfers(json_data):
     transfers = []
-    for transfer in json_data['result']['transfers']:
-        asset = _get_asset(transfer)
-        value = int(transfer['rawContract']['value'], 16) / DIVISORS[asset]
-        if deposit:
-            transfers.append(
-                (transfer['from'], transfer['to'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
-            )
-        elif withdrawal:
-            transfers.append(
-                (transfer['to'], transfer['from'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
-            )
-        else:
-            raise Exception('Cached data type not specified.')            
-    return transfers
-
-
-def format_zap_transfers(json_data, deposit=False, withdrawal=False):
-    transfers = []
-    for transfer in json_data['result']['transfers']:
-        asset = _get_asset(transfer)
-        value = int(transfer['rawContract']['value'], 16) / DIVISORS[asset]
-        if deposit:
-            transfers.append(
-                (transfer['from'], transfer['to'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
-            )
-        elif withdrawal:
-            transfers.append(
-                (transfer['to'], transfer['from'], int(transfer['blockNum'], 16), transfer['hash'], asset, value)
-            )
-        else:
-            raise Exception('Cached data type not specified.')            
+    for t in json_data['result']['transfers']:
+        asset = _get_asset(t)
+        value = int(t['rawContract']['value'], 16) / DIVISORS[asset]
+        transfers.append({
+            'fromAddress': t['from'],
+            'toAddress': t['to'],
+            'blockNum': int(t['blockNum'], 16),
+            'hash': t['hash'],
+            'asset': asset,
+            'value': value,
+        })        
     return transfers
 
 
