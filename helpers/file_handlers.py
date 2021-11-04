@@ -40,7 +40,6 @@ def load_next_block(currency_pair, tx_type, request_id):
     cache_fp = os.path.join(config.DATA_DIR, _create_fn(cur1, cur2, tx_type, request_id))
     with open(cache_fp, 'r') as cache_f:
         data = json.load(cache_f)
-    print(data['result']['transfers'])
     next_block = data_handlers.get_next_block_num(data['result']['transfers'])
     return next_block
 
